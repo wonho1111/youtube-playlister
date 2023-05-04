@@ -22,14 +22,30 @@ class _MyAppState extends State<MyApp> {
   // This widget is the root of your application.
 
   List<dynamic> videos = [];
+  final recommendedVideos = [];
 
   Future<void> _searchYoutube(String tag) async {
     var url =
-        '$BASE_URL?part=snippet&q=$tag+playlist&key=$API_KEY&type=video&regionCode=KR&videoCategoryId=10&videoDuration=any';
+        '$BASE_URL?part=snippet&q=$tag+playlist&key=$API_KEY&type=video&regionCode=KR&videoCategoryId=10&videoDuration=any&maxResults=7';
     var response = await http.get(Uri.parse(url));
     var jsonResponse = json.decode(response.body);
     setState(() {
+      //videos =
+      //jsonResponse['items'].map((item) => Video.fromJson(item)).toList();
+      var hashtag = "#" + tag;
+      print(hashtag);
       videos = jsonResponse['items'];
+      for (final video in videos) {
+        if ((video['snippet']['description'].contains(hashtag))) {
+          recommendedVideos.add(video);
+        }
+      }
+
+      for (final video in videos) {
+        if ((!video['snippet']['description'].contains(hashtag))) {
+          recommendedVideos.add(video);
+        }
+      }
     });
   }
 
@@ -59,16 +75,23 @@ class _MyAppState extends State<MyApp> {
         ),
         body: Column(
           children: [
-            TextField(
-              onSubmitted: (value) {
-                _searchYoutube(value);
-              },
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
+              child: TextField(
+                decoration: InputDecoration(
+                  border: OutlineInputBorder(),
+                  hintText: 'Enter a search term',
+                ),
+                onSubmitted: (value) {
+                  _searchYoutube(value);
+                },
+              ),
             ),
             Expanded(
               child: ListView.builder(
-                itemCount: videos.length,
+                itemCount: recommendedVideos.length,
                 itemBuilder: (BuildContext context, int index) {
-                  var video = videos[index];
+                  var video = recommendedVideos[index];
                   return ListTile(
                     leading: Image.network(
                         video['snippet']['thumbnails']['default']['url']),
@@ -84,3 +107,34 @@ class _MyAppState extends State<MyApp> {
     );
   }
 }
+
+/*
+class Video {
+  String title;
+  String channelId;
+  String description;
+  List<String> tags = [];
+  List<String> comments = [];
+
+  Video(
+      {required this.title,
+      required this.channelId,
+      required this.description});
+
+  factory Video.fromJson(Map<String, dynamic> json) {
+    final video = Video(
+      title: json['snippet']['title'],
+      channelId: json['snippet']['channelId'],
+      description: json['snippet']['description'],
+    );
+    if (json['snippet']['tags'] != null) {
+      video.tags = List<String>.from(json['snippet']['tags']);
+    }
+    if (json['comments'] != null) {
+      video.comments =
+          json['comments'].map<String>((comment) => comment['text']).toList();
+    }
+    return video;
+  }
+}
+*/
