@@ -50,11 +50,11 @@ class _TagSearchState extends State<TagSearch> {
   Widget build(BuildContext context) {
     return MaterialApp(
       home: Scaffold(
-        appBar: AppBar(
-          title: Text('Search Youtube by Tag'),
-        ),
         body: Column(
           children: [
+            SizedBox(
+              height: 50,
+            ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
               child: TextField(

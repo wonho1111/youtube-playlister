@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:playlister/palette_search.dart';
 import 'package:playlister/tag_search.dart';
 
 const API_KEY = 'AIzaSyCuLa-SZiVQNZ2E7V_6Z6FopgsLHhSIwpg';
@@ -42,11 +43,7 @@ class _MyAppState extends State<MyApp> {
         ),
         body: <Widget>[
           TagSearch(),
-          Container(
-            color: Colors.green,
-            alignment: Alignment.center,
-            child: const Text('Page 2'),
-          ),
+          PaletteSearch(),
         ][currentPageIndex],
       ),
     );
