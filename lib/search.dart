@@ -1,8 +1,11 @@
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
+import 'package:playlister/random_string.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 const API_KEY = 'AIzaSyCuLa-SZiVQNZ2E7V_6Z6FopgsLHhSIwpg';
 const BASE_URL = 'https://www.googleapis.com/youtube/v3/search';
@@ -17,27 +20,29 @@ class Search extends StatefulWidget {
 class _SearchState extends State<Search> {
   List<dynamic> videos = [];
   final recommendedVideos = [];
-  final TextEditingController _textController = new TextEditingController();
+  final TextEditingController textController = new TextEditingController();
 
-  Color currentColor = Colors.amber;
+  String colorToString = "aaa";
+  Color currentColor = Color(0xFFF0B80F);
   void changeColor(Color color) => setState(() {
         currentColor = color;
-        _textController.text =
+        textController.text =
             _getKeywordForHue(HSVColor.fromColor(currentColor).hue);
       });
-  final Map<double, String> _colorKeywordMap = {
-    0: "적극적인",
-    30: "열정적인",
-    60: "활기찬",
-    90: "위험한",
-    120: "행복한",
-    150: "평화로운",
-    180: "진지한",
-    210: "청량한",
-    240: "시원한",
-    270: "우아한",
-    300: "우수한",
-    330: "귀여운",
+
+  final Map<double, List> _colorKeywordMap = {
+    0: RandomString().red,
+    30: RandomString().orange,
+    60: RandomString().yellow,
+    90: RandomString().yellowgreen,
+    120: RandomString().yellowgreen,
+    150: RandomString().green,
+    180: RandomString().skyblue,
+    210: RandomString().blue,
+    240: RandomString().blue,
+    270: RandomString().purple,
+    300: RandomString().pink,
+    330: RandomString().red,
   };
 
   Future<void> _searchYoutube(String tag) async {
@@ -75,12 +80,13 @@ class _SearchState extends State<Search> {
               height: 50,
             ),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
+              //padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
+              padding: const EdgeInsets.fromLTRB(8, 16, 8, 0),
               child: Row(
                 children: [
                   Flexible(
                     child: TextField(
-                      controller: _textController,
+                      controller: textController,
                       decoration: InputDecoration(
                         border: OutlineInputBorder(),
                         hintText: 'Enter a search term',
@@ -95,7 +101,7 @@ class _SearchState extends State<Search> {
                   ),
                   FilledButton(
                     onPressed: () {
-                      _searchYoutube(_textController.text);
+                      _searchYoutube(textController.text);
                     },
                     child: Text("검색"),
                   ),
@@ -107,11 +113,20 @@ class _SearchState extends State<Search> {
                 itemCount: recommendedVideos.length,
                 itemBuilder: (BuildContext context, int index) {
                   var video = recommendedVideos[index];
+                  var videoId = video['id']['videoId'];
+                  Uri listUrl =
+                      Uri.parse("https://www.youtube.com/watch?v=${videoId}");
+
                   return ListTile(
                     leading: Image.network(
                         video['snippet']['thumbnails']['default']['url']),
                     title: Text(video['snippet']['title']),
                     subtitle: Text(video['snippet']['channelTitle']),
+                    onTap: () async {
+                      if (!await launchUrl(listUrl)) {
+                        throw Exception('Could not launch $listUrl');
+                      }
+                    },
                   );
                 },
               ),
@@ -121,7 +136,7 @@ class _SearchState extends State<Search> {
               margin: EdgeInsets.fromLTRB(0, 0, 30, 50),
               child: FloatingActionButton(
                 onPressed: () {
-                  showColorPicker(context);
+                  _showColorPicker(context);
                 },
                 child: Icon(Icons.palette),
               ),
@@ -137,13 +152,13 @@ class _SearchState extends State<Search> {
       var startHue = _colorKeywordMap.keys.elementAt(i);
       var endHue = _colorKeywordMap.keys.elementAt(i + 1);
       if (hue >= startHue && hue < endHue) {
-        return _colorKeywordMap[startHue]!;
+        return _colorKeywordMap[startHue]![Random().nextInt(10)];
       }
     }
-    return _colorKeywordMap[330]!;
+    return _colorKeywordMap[330]![Random().nextInt(10)];
   }
 
-  void showColorPicker(BuildContext context) {
+  void _showColorPicker(BuildContext context) {
     var alert = AlertDialog(
       content: Container(
         clipBehavior: Clip.hardEdge,
@@ -174,5 +189,14 @@ class _SearchState extends State<Search> {
         return alert;
       },
     );
+    // .then((colorToString) {
+    //   if (colorToString == null) {
+    //     print(colorToString);
+    //     return;
+    //   }
+    //   textController.text = colorToString;
+    //   print("success");
+    // }
+    //);
   }
 }
