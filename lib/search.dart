@@ -7,6 +7,9 @@ import 'package:flutter/material.dart';
 import 'package:playlister/random_string.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'model/record.dart';
+import 'api/api.dart';
+
 const API_KEY = 'AIzaSyCuLa-SZiVQNZ2E7V_6Z6FopgsLHhSIwpg';
 const BASE_URL = 'https://www.googleapis.com/youtube/v3/search';
 
@@ -69,79 +72,116 @@ class _SearchState extends State<Search> {
     });
   }
 
+  recordHistory(String channel, String video) async {
+    Record recordModel = Record(channel, video);
+
+    try {
+      var response =
+          await http.post(Uri.parse(API.record), body: recordModel.toJson());
+
+      if (response.statusCode == 200) {
+        var resRecord = jsonDecode(response.body);
+        if (resRecord['save'] == true) {
+          // success Message
+        } else {
+          // fail Message
+        }
+      }
+    } catch (e) {
+      print(e.toString());
+      // error Message
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       home: Scaffold(
         resizeToAvoidBottomInset: false,
-        body: Column(
-          children: [
-            SizedBox(
-              height: 50,
-            ),
-            Padding(
-              //padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
-              padding: const EdgeInsets.fromLTRB(8, 16, 8, 0),
-              child: Row(
-                children: [
-                  Flexible(
-                    child: TextField(
-                      controller: textController,
-                      decoration: InputDecoration(
-                        border: OutlineInputBorder(),
-                        hintText: 'Enter a search term',
+        body: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            // gradient: LinearGradient(
+            //   begin: Alignment.topCenter,
+            //   end: Alignment.bottomCenter,
+            //   colors: [
+            //     Colors.black87,
+            //     Colors.black54,
+            //   ],
+            // ),
+          ),
+          child: Column(
+            children: [
+              SizedBox(
+                height: 50,
+              ),
+              Padding(
+                //padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
+                padding: const EdgeInsets.fromLTRB(8, 16, 8, 0),
+                child: Row(
+                  children: [
+                    Flexible(
+                      child: TextField(
+                        controller: textController,
+                        decoration: InputDecoration(
+                          border: OutlineInputBorder(),
+                          hintText: 'Enter a search term',
+                        ),
+                        onSubmitted: (text) {
+                          _searchYoutube(text);
+                        },
                       ),
-                      onSubmitted: (text) {
-                        _searchYoutube(text);
-                      },
                     ),
-                  ),
-                  SizedBox(
-                    width: 10,
-                  ),
-                  FilledButton(
-                    onPressed: () {
-                      _searchYoutube(textController.text);
-                    },
-                    child: Text("검색"),
-                  ),
-                ],
+                    SizedBox(
+                      width: 10,
+                    ),
+                    FilledButton(
+                      onPressed: () {
+                        _searchYoutube(textController.text);
+                      },
+                      child: Text("검색"),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            Expanded(
-              child: ListView.builder(
-                itemCount: recommendedVideos.length,
-                itemBuilder: (BuildContext context, int index) {
-                  var video = recommendedVideos[index];
-                  var videoId = video['id']['videoId'];
-                  Uri listUrl =
-                      Uri.parse("https://www.youtube.com/watch?v=${videoId}");
+              Expanded(
+                child: ListView.builder(
+                  itemCount: recommendedVideos.length,
+                  itemBuilder: (BuildContext context, int index) {
+                    var video = recommendedVideos[index];
+                    var videoId = video['id']['videoId'];
+                    Uri listUrl =
+                        Uri.parse("https://www.youtube.com/watch?v=${videoId}");
 
-                  return ListTile(
-                    leading: Image.network(
-                        video['snippet']['thumbnails']['default']['url']),
-                    title: Text(video['snippet']['title']),
-                    subtitle: Text(video['snippet']['channelTitle']),
-                    onTap: () async {
-                      if (!await launchUrl(listUrl)) {
-                        throw Exception('Could not launch $listUrl');
-                      }
-                    },
-                  );
-                },
+                    return ListTile(
+                      leading: Image.network(
+                          video['snippet']['thumbnails']['default']['url']),
+                      title: Text(video['snippet']['title']),
+                      subtitle: Text(video['snippet']['channelTitle']),
+                      onTap: () async {
+                        if (!await launchUrl(listUrl)) {
+                          throw Exception('Could not launch $listUrl');
+                        } else {
+                          recordHistory(video['snippet']['channelTitle'],
+                              video['snippet']['title']);
+                        }
+                      },
+                    );
+                  },
+                ),
               ),
-            ),
-            Container(
-              alignment: Alignment.centerRight,
-              margin: EdgeInsets.fromLTRB(0, 0, 30, 50),
-              child: FloatingActionButton(
-                onPressed: () {
-                  _showColorPicker(context);
-                },
-                child: Icon(Icons.palette),
+              Container(
+                alignment: Alignment.centerRight,
+                margin: EdgeInsets.fromLTRB(0, 0, 30, 50),
+                child: FloatingActionButton(
+                  onPressed: () {
+                    _showColorPicker(context);
+                  },
+                  child: Icon(Icons.palette),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
