@@ -6,12 +6,20 @@ import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:playlister/random_string.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:html_unescape/html_unescape.dart';
 
 import 'model/record.dart';
 import 'api/api.dart';
 
 const API_KEY = 'AIzaSyCuLa-SZiVQNZ2E7V_6Z6FopgsLHhSIwpg';
 const BASE_URL = 'https://www.googleapis.com/youtube/v3/search';
+
+class VideoRecommend {
+  dynamic video;
+  int viewCount;
+
+  VideoRecommend(this.video, this.viewCount);
+}
 
 class Search extends StatefulWidget {
   const Search({super.key});
@@ -22,11 +30,13 @@ class Search extends StatefulWidget {
 
 class _SearchState extends State<Search> {
   List<dynamic> videos = [];
+  List<VideoRecommend> priorityChannel = [];
   final recommendedVideos = [];
   final TextEditingController textController = new TextEditingController();
+  var unescape = HtmlUnescape();
 
   String colorToString = "aaa";
-  Color currentColor = Color(0xFFF0B80F);
+  Color currentColor = const Color(0xFFF0B80F);
   void changeColor(Color color) => setState(() {
         currentColor = color;
         textController.text =
@@ -50,14 +60,33 @@ class _SearchState extends State<Search> {
 
   Future<void> _searchYoutube(String tag) async {
     var url =
-        '$BASE_URL?part=snippet&q=$tag+playlist&key=$API_KEY&type=video&regionCode=KR&videoCategoryId=10&videoDuration=any&maxResults=5';
+        '$BASE_URL?part=snippet&q=$tag+playlist&key=$API_KEY&type=video&regionCode=KR&videoCategoryId=10&videoDuration=any&maxResults=15';
     var response = await http.get(Uri.parse(url));
     var jsonResponse = json.decode(response.body);
+
+    var hashtag = "#" + tag;
+    var resVideoList = jsonResponse['items'];
+
+    for (final video in resVideoList) {
+      var response = await http.post(Uri.parse(API.get_history),
+          body: {'channel_name': video['snippet']['channelTitle']});
+      if (response.statusCode == 200) {
+        var resRecord = jsonDecode(response.body);
+
+        priorityChannel.add(VideoRecommend(video, resRecord['num']));
+      }
+    }
+
+    priorityChannel.sort((a, b) => a.viewCount.compareTo(b.viewCount));
+    List<VideoRecommend> temp = List.from(priorityChannel.reversed);
+    //List<VideoRecommend> temp = List.from(priorityChannel);
+    for (final tempVideo in temp) {
+      videos.add(tempVideo.video);
+    }
+
     setState(() {
       recommendedVideos.clear();
 
-      var hashtag = "#" + tag;
-      videos = jsonResponse['items'];
       for (final video in videos) {
         if ((video['snippet']['description'].contains(hashtag))) {
           recommendedVideos.add(video);
@@ -71,7 +100,7 @@ class _SearchState extends State<Search> {
       }
     });
   }
-
+  
   recordHistory(String channel, String video) async {
     Record recordModel = Record(channel, video);
 
@@ -88,7 +117,6 @@ class _SearchState extends State<Search> {
         }
       }
     } catch (e) {
-      print(e.toString());
       // error Message
     }
   }
@@ -99,7 +127,7 @@ class _SearchState extends State<Search> {
       home: Scaffold(
         resizeToAvoidBottomInset: false,
         body: Container(
-          decoration: BoxDecoration(
+          decoration: const BoxDecoration(
             color: Colors.white,
             // gradient: LinearGradient(
             //   begin: Alignment.topCenter,
@@ -112,7 +140,7 @@ class _SearchState extends State<Search> {
           ),
           child: Column(
             children: [
-              SizedBox(
+              const SizedBox(
                 height: 50,
               ),
               Padding(
@@ -123,7 +151,7 @@ class _SearchState extends State<Search> {
                     Flexible(
                       child: TextField(
                         controller: textController,
-                        decoration: InputDecoration(
+                        decoration: const InputDecoration(
                           border: OutlineInputBorder(),
                           hintText: 'Enter a search term',
                         ),
@@ -132,14 +160,14 @@ class _SearchState extends State<Search> {
                         },
                       ),
                     ),
-                    SizedBox(
+                    const SizedBox(
                       width: 10,
                     ),
                     FilledButton(
                       onPressed: () {
                         _searchYoutube(textController.text);
                       },
-                      child: Text("검색"),
+                      child: const Text("검색"),
                     ),
                   ],
                 ),
@@ -156,8 +184,9 @@ class _SearchState extends State<Search> {
                     return ListTile(
                       leading: Image.network(
                           video['snippet']['thumbnails']['default']['url']),
-                      title: Text(video['snippet']['title']),
-                      subtitle: Text(video['snippet']['channelTitle']),
+                      title: Text(unescape.convert(video['snippet']['title'])),
+                      subtitle: Text(
+                          unescape.convert(video['snippet']['channelTitle'])),
                       onTap: () async {
                         if (!await launchUrl(listUrl)) {
                           throw Exception('Could not launch $listUrl');
@@ -172,12 +201,12 @@ class _SearchState extends State<Search> {
               ),
               Container(
                 alignment: Alignment.centerRight,
-                margin: EdgeInsets.fromLTRB(0, 0, 30, 50),
+                margin: const EdgeInsets.fromLTRB(0, 0, 30, 50),
                 child: FloatingActionButton(
                   onPressed: () {
                     _showColorPicker(context);
                   },
-                  child: Icon(Icons.palette),
+                  child: const Icon(Icons.palette),
                 ),
               ),
             ],
