@@ -100,9 +100,11 @@ class _SearchState extends State<Search> {
       }
     });
   }
-  
+
   recordHistory(String channel, String video) async {
-    Record recordModel = Record(channel, video);
+    var channelTitle = unescape.convert(channel);
+    var videoTitle = unescape.convert(video);
+    Record recordModel = Record(channelTitle, videoTitle);
 
     try {
       var response =
